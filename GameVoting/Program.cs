@@ -17,6 +17,8 @@ if (builder.Environment.IsDevelopment())
 }
 else
 {
+    Console.WriteLine($"DATABASE_URL: {Environment.GetEnvironmentVariable("DATABASE_URL") ?? "NULL"}");
+
     var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
     var dataSourceBuilder = new NpgsqlDataSourceBuilder(databaseUrl);
     var dataSource = dataSourceBuilder.Build();
