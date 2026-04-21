@@ -18,11 +18,12 @@ if (builder.Environment.IsDevelopment())
 else
 {
     var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-    var dataSourceBuilder = new NpgsqlDataSourceBuilder(databaseUrl);
-    var dataSource = dataSourceBuilder.Build();
+    var uri = new Uri(databaseUrl!);
+    var userInfo = uri.UserInfo.Split(':');
+    var connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]}";
 
     builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(dataSource));
+        options.UseNpgsql(connectionString));
 }
 
 builder.Services.AddControllersWithViews();
