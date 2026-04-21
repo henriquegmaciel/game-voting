@@ -11,17 +11,14 @@ using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
-if (builder.Environment.IsDevelopment())
+string? databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+string connectionString;
+
+if (!string.IsNullOrEmpty(databaseUrl))
 {
-    builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
-}
-else
-{
-    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
     var uri = new Uri(databaseUrl!);
     var userInfo = uri.UserInfo.Split(':');
-    var builderNpgsql = new Npgsql.NpgsqlConnectionStringBuilder
+    var builderNpgsql = new NpgsqlConnectionStringBuilder
     {
         Host = uri.Host,
         Port = uri.Port,
@@ -30,12 +27,16 @@ else
         Password = uri.UserInfo.Split(':')[1],
         SslMode = SslMode.Require
     };
-    var connectionString = builderNpgsql.ToString();
-
-    builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(connectionString)
-        .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
+    connectionString = builderNpgsql.ToString();
 }
+else
+{
+    connectionString = builder.Configuration.GetConnectionString("Postgres")!;
+}
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString)
+    .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
 builder.Services.AddControllersWithViews();
 
