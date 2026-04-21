@@ -6,11 +6,9 @@ using GameVoting.Services;
 using GameVoting.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-builder.Services.AddControllersWithViews();
 
 if (builder.Environment.IsDevelopment())
 {
@@ -19,9 +17,15 @@ if (builder.Environment.IsDevelopment())
 }
 else
 {
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    var dataSourceBuilder = new NpgsqlDataSourceBuilder(databaseUrl);
+    var dataSource = dataSourceBuilder.Build();
+
     builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+        options.UseNpgsql(dataSource));
 }
+
+builder.Services.AddControllersWithViews();
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>();
