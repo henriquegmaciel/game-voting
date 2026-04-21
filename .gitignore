@@ -58,3 +58,4 @@ obj/
 coverage-report/
 TestResults/
 *.db
+appsettings.Production.json
