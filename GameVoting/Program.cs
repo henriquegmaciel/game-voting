@@ -6,6 +6,7 @@ using GameVoting.Services;
 using GameVoting.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,7 +21,6 @@ else
     var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
     var uri = new Uri(databaseUrl!);
     var userInfo = uri.UserInfo.Split(':');
-
     var builderNpgsql = new Npgsql.NpgsqlConnectionStringBuilder
     {
         Host = uri.Host,
@@ -28,13 +28,13 @@ else
         Database = uri.AbsolutePath.TrimStart('/'),
         Username = uri.UserInfo.Split(':')[0],
         Password = uri.UserInfo.Split(':')[1],
-        SslMode = Npgsql.SslMode.Require
+        SslMode = SslMode.Require
     };
-
     var connectionString = builderNpgsql.ToString();
 
     builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(connectionString));
+        options.UseNpgsql(connectionString)
+        .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 }
 
 builder.Services.AddControllersWithViews();
@@ -61,30 +61,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    Console.WriteLine("Provider: " + db.Database.ProviderName);
-    Console.WriteLine("CanConnect: " + db.Database.CanConnect());
-
-    var migrations = db.Database.GetMigrations().ToList();
-    Console.WriteLine("Migrations count: " + migrations.Count);
-
-    foreach (var m in migrations)
-    {
-        Console.WriteLine("Migration: " + m);
-    }
-
-    try
-    {
-        db.Database.Migrate();
-        Console.WriteLine("Migrate executado com sucesso");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine("Erro ao migrar: " + ex);
-        throw;
-    }
-    //var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    //db.Database.Migrate();
+    db.Database.Migrate();
 }
 
 // Configure the HTTP request pipeline.
