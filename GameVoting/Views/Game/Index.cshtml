@@ -1,0 +1,288 @@
+@model GameIndexViewModel
+
+@{
+    ViewData["Title"] = "Jogos";
+}
+
+<div class="container py-3">
+
+    @if (TempData["Erro"] is string erro)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @erro
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Sucesso"] is string sucesso)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @sucesso
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (Model.Upcoming.Any())
+    {
+        <p class="section-label bi-calendar-event"> Próximas sessões</p>
+        <div class="row g-2 mb-4">
+            @foreach (GameSession session in Model.Upcoming)
+            {
+                bool isToday = DateTime.Today == session.ScheduledDate;
+
+                <div class="col-md-4">
+                    <div class="card h-100 @(isToday ? "card-scheduled" : "")">
+                        <div class="card-body d-flex align-items-center gap-3 py-2">
+                            <i class="bi bi-controller fs-5"></i>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">@(session.GameTitle ?? session.Game?.Title ?? "Jogo removido")</div>
+                                <small class="@(isToday ? "text-accent" : "text-muted") bi-calendar-event">
+                                    @session.ScheduledDate.ToString(format: "dd/MM/yyyy")
+                                </small>
+                            </div>
+                            <form method="post" asp-controller="GameSession" asp-action="MarkAsPlayed">
+                                <input type="hidden" name="sessionId" value="@session.Id" />
+                                <button type="button" class="btn btn-sm btn-outline-success" title="Marcar como jogado"
+                                        onclick="openMarkAsPlayedModal(@session.Id, '@session.Game?.Title.Replace(oldValue: "'", newValue: "\\'") ')">
+                                    <i class="bi bi-check2-circle"></i>
+                                </button>
+                            </form>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" title="Editar sessão"
+                                    onclick="openEditSessionModal(@session.Id, '@(session.Game?.Title?.Replace(oldValue: "'", newValue: "\\'") ?? "")')">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (Model.History.Any())
+    {
+        <p class="section-label bi-clock-history"> Últimas sessões</p>
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            @foreach (GameSession session in Model.History)
+            {
+                <div class="history-pill">
+                    <div>
+                        <div class="fw-semibold">@(session.GameTitle ?? session.Game?.Title ?? "Jogo removido")</div>
+                        <div class="text-muted" style="font-size:.72rem">@session.PlayedAt!.Value.ToString(format: "dd/MM/yyyy")
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="d-flex align-items-center justify-content-between gap-2 mb-3 flex-wrap">
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-primary" onclick="showTab('main')">Recentes</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="showTab('top')">Mais votados</button>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <div class="search-wrap">
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" id="searchInput" class="form-control form-control-sm search-input"
+                       placeholder="Buscar jogo..." autocomplete="off" />
+            </div>
+            <a asp-controller="Game" asp-action="Create" class="btn btn-sm btn-primary" title="Adicionar jogo">+</a>
+        </div>
+    </div>
+
+    <div id="tab-main">
+        <div class="game-list">
+            @foreach (RankingItemViewModel game in Model.Ranking)
+            {
+                @await Html.PartialAsync(partialViewName: "_GameRow", game)
+            }
+        </div>
+        <div id="mainEmpty" class="text-center py-4 text-muted d-none">Nenhum jogo encontrado.</div>
+    </div>
+
+    <div id="tab-top" class="d-none">
+        <div class="game-list">
+            @foreach (RankingItemViewModel game in Model.TopRanking)
+            {
+                @await Html.PartialAsync(partialViewName: "_GameRow", game)
+            }
+        </div>
+        <div id="topEmpty" class="text-center py-4 text-muted d-none">Nenhum jogo encontrado.</div>
+    </div>
+
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h6 class="modal-title">Remover jogo</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Tem certeza que deseja remover <strong id="deleteGameTitle"></strong>?
+                </div>
+                <div class="modal-footer border-0">
+                    <form method="post" asp-controller="Game" asp-action="Remove" id="deleteGameForm">
+                        <input type="hidden" name="gameId" id="deleteGameId" />
+                        <button type="submit" class="btn btn-sm btn-danger">Remover</button>
+                    </form>
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="scheduleModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h6 class="modal-title">Agendar sessão</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-2" id="scheduleGameTitle"></p>
+                    <label class="form-label">Data da sessão</label>
+                    <input type="date" id="scheduleDate" class="form-control form-control-sm"
+                           min="@DateTime.Today.ToString(format: "yyyy-MM-dd")" />
+                </div>
+                <div class="modal-footer border-0">
+                    <form method="post" asp-controller="GameSession" asp-action="Schedule" id="scheduleForm">
+                        <input type="hidden" name="gameId" id="scheduleGameId" />
+                        <input type="hidden" name="scheduledDate" id="scheduleDateHidden" />
+                        <button type="submit" class="btn btn-sm btn-primary"
+                                onclick="document.getElementById('scheduleDateHidden').value = document.getElementById('scheduleDate').value">
+                            Agendar
+                        </button>
+                    </form>
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="markAsPlayedModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h6 class="modal-title">Marcar como jogado</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-2" id="markAsPlayedGameTitle"></p>
+                    <label class="form-label">Data em que foi jogado</label>
+                    <input type="date" id="playedAtDate" class="form-control form-control-sm"
+                           max="@DateTime.Today.ToString("yyyy-MM-dd")"
+                           value="@DateTime.Today.ToString(format: "yyyy-MM-dd")" />
+                </div>
+                <div class="modal-footer border-0">
+                    <form method="post" asp-controller="GameSession" asp-action="MarkAsPlayed" id="markAsPlayedForm">
+                        <input type="hidden" name="sessionId" id="markAsPlayedSessionId" />
+                        <input type="hidden" name="playedAt" id="playedAtHidden" />
+                        <button type="submit" class="btn btn-sm btn-primary"
+                                onclick="document.getElementById('playedAtHidden').value = document.getElementById('playedAtDate').value">
+                            Confirmar
+                        </button>
+                    </form>
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editSessionModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h6 class="modal-title">Editar sessão</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-2" id="editSessionGameTitle"></p>
+                    <label class="form-label">Nova data</label>
+                    <input type="date" id="rescheduleDate" class="form-control form-control-sm"
+                           min="@DateTime.Today.ToString(format: "yyyy-MM-dd")" />
+                </div>
+                <div class="modal-footer border-0 d-flex justify-content-between">
+                    <form method="post" asp-controller="GameSession" asp-action="Reschedule">
+                        <input type="hidden" name="sessionId" id="rescheduleSessionId" />
+                        <input type="hidden" name="newDate" id="rescheduleDateHidden" />
+                        <button type="submit" class="btn btn-sm btn-primary"
+                                onclick="document.getElementById('rescheduleDateHidden').value = document.getElementById('rescheduleDate').value">
+                            Salvar
+                        </button>
+                    </form>
+                    <form method="post" asp-controller="GameSession" asp-action="CancelSession">
+                        <input type="hidden" name="sessionId" id="cancelSessionId" />
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Cancelar sessão</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function showTab(tab) {
+        document.getElementById('tab-main').classList.toggle('d-none', tab !== 'main');
+        document.getElementById('tab-top').classList.toggle('d-none', tab !== 'top');
+    
+        document.querySelectorAll('[onclick^="showTab"]').forEach(btn => {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline-secondary');
+        });
+    
+        const active = document.querySelector(`[onclick="showTab('${tab}')"]`);
+        active.classList.remove('btn-outline-secondary');
+        active.classList.add('btn-primary');
+    
+        document.getElementById('searchInput').value = '';
+        filterGames('');
+    }
+
+    document.getElementById('searchInput').addEventListener('input', function () {
+        filterGames(this.value);
+    });
+
+    function filterGames(query) {
+        const queryLowerCase = query.toLowerCase();
+        const activeTab = !document.getElementById('tab-main').classList.contains('d-none')
+            ? 'tab-main' : 'tab-top';
+        const emptyId = activeTab === 'tab-main' ? 'mainEmpty' : 'topEmpty';
+        let visible = 0;
+        document.querySelectorAll(`#${activeTab} .game-item`).forEach(function (item) {
+            const match = item.dataset.title.includes(queryLowerCase);
+            item.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        document.getElementById(emptyId).classList.toggle('d-none', visible > 0);
+    }
+
+    function openDeleteModal(gameId, title) {
+        document.getElementById('deleteGameId').value = gameId;
+        document.getElementById('deleteGameTitle').textContent = title;
+        new bootstrap.Modal(document.getElementById('confirmDeleteModal')).show();
+    }
+
+    function openScheduleModal(gameId, title) {
+        document.getElementById('scheduleGameId').value = gameId;
+        document.getElementById('scheduleGameTitle').textContent = title;
+        document.getElementById('scheduleDate').value = '';
+        new bootstrap.Modal(document.getElementById('scheduleModal')).show();
+    }
+
+    function openMarkAsPlayedModal(sessionId, title) {
+        document.getElementById('markAsPlayedSessionId').value = sessionId;
+        document.getElementById('markAsPlayedGameTitle').textContent = title;
+        new bootstrap.Modal(document.getElementById('markAsPlayedModal')).show();
+    }
+
+    function openEditSessionModal(sessionId, title) {
+        document.getElementById('editSessionGameTitle').textContent = title;
+        document.getElementById('rescheduleSessionId').value = sessionId;
+        document.getElementById('cancelSessionId').value = sessionId;
+        document.getElementById('rescheduleDate').value = '';
+        new bootstrap.Modal(document.getElementById('editSessionModal')).show();
+    }
+</script>

@@ -39,7 +39,6 @@ ScaffoldingReadMe.txt
 # Others
 ~$*
 *~
-CodeCoverage/
 
 # MSBuild Binary and Structured Log
 *.binlog
@@ -52,3 +51,10 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+CodeCoverage/
+bin/
+obj/
+coverage-report/
+TestResults/
+*.db

@@ -1,0 +1,55 @@
+@model RankingItemViewModel
+
+<div class="game-row game-item" data-title="@Model.Title.ToLower()">
+    <div class="flex-grow-1 min-w-0">
+        <div class="fw-semibold text-truncate">@Model.Title</div>
+        <div class="d-flex gap-2 align-items-center">
+            <small class="text-muted">
+                @if (!string.IsNullOrEmpty(Model.StorePageUrl))
+                {
+                    <a href="@Model.StorePageUrl" target="_blank"
+                           class="badge bg-secondary btn btn-sm btn-outline-secondary" title="Ver na loja">Página
+                    </a>
+                }
+                <span class="badge bg-secondary">@Model.Genre</span>@Model.ReleaseYear
+            </small>
+        </div>
+    </div>
+
+    <div class="text-center me-2" style="min-width: 44px">
+        <div class="fw-bold text-accent">@Model.VoteCount</div>
+        <div style="font-size:.7rem" class="text-muted">voto@(Model.VoteCount != 1 ? "s" : "")</div>
+    </div>
+
+    <div class="d-flex gap-2 align-items-center">
+        @if (Model.UserAlreadyVoted)
+        {
+            <form method="post" asp-controller="Vote" asp-action="Remove">
+                <input type="hidden" name="gameId" value="@Model.GameId" />
+                <button type="submit" class="btn btn-sm btn-primary" style="min-width:110px">
+                    Remover voto
+                </button>
+            </form>
+        }
+        else
+        {
+            <form method="post" asp-controller="Vote" asp-action="Cast">
+                <input type="hidden" name="gameId" value="@Model.GameId" />
+                <button type="submit" class="btn btn-sm btn-outline-primary" style="min-width:110px">
+                    Votar
+                </button>
+            </form>
+        }
+        <button type="button" class="btn btn-sm btn-outline-secondary" title="Agendar"
+                onclick="openScheduleModal(@Model.GameId, '@Model.Title.Replace(oldValue: "'", newValue: "\\'")' )">
+            <i class="bi bi-calendar-plus"></i>
+        </button>
+        <form method="post" asp-controller="Game" asp-action="Remove" class="d-flex gap-1">
+            <input type="hidden" name="gameId" value="@Model.GameId" />
+            <button type="button" class="btn btn-sm btn-outline-danger" title="Remover jogo"
+                    onclick="openDeleteModal(@Model.GameId, '@Model.Title.Replace(oldValue: "'", newValue: "\\'")' )">
+                <i class="bi bi-trash"></i>
+            </button>
+        </form>
+    </div>
+</div>
