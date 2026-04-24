@@ -17,6 +17,7 @@ public class GameSessionController : Controller
     [HttpPost]
     public IActionResult Schedule(int gameId, DateTime scheduledDate)
     {
+        scheduledDate = DateTime.SpecifyKind(scheduledDate, DateTimeKind.Utc);
         if (scheduledDate == default)
         {
             TempData["Erro"] = "Selecione uma data válida.";
@@ -31,6 +32,7 @@ public class GameSessionController : Controller
     [HttpPost]
     public IActionResult MarkAsPlayed(int sessionId, DateTime playedAt)
     {
+        playedAt = DateTime.SpecifyKind(playedAt, DateTimeKind.Utc);
         if (playedAt == default)
             playedAt = DateTime.Today;
 
@@ -42,6 +44,7 @@ public class GameSessionController : Controller
     [HttpPost]
     public IActionResult Reschedule(int sessionId, DateTime newDate)
     {
+        newDate = DateTime.SpecifyKind(newDate, DateTimeKind.Utc);
         if (newDate == default)
         {
             TempData["Erro"] = "Data inválida.";
