@@ -63,6 +63,20 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+    if (!await roleManager.RoleExistsAsync("Admin"))
+        await roleManager.CreateAsync(new IdentityRole("Admin"));
+
+    if (!await roleManager.RoleExistsAsync("Member"))
+        await roleManager.CreateAsync(new IdentityRole("Member"));
+
+    var adminEmail = builder.Configuration["AdminEmail"]!;
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    if (adminUser is not null && !await userManager.IsInRoleAsync(adminUser, "Admin"))
+        await userManager.AddToRoleAsync(adminUser, "Admin");
 }
 
 // Configure the HTTP request pipeline.

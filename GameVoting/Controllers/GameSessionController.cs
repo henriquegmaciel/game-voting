@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GameVoting.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Admin")]
 public class GameSessionController : Controller
 {
     private readonly IGameSessionService _sessionService;

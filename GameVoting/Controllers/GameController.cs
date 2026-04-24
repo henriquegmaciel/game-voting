@@ -16,7 +16,6 @@ public class GameController : Controller
         _gameService = gameService;
     }
 
-    [AllowAnonymous]
     public IActionResult Index()
     {
         string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -24,11 +23,13 @@ public class GameController : Controller
         return View(viewModel);
     }
 
+    [Authorize(Roles = "Admin")]
     public IActionResult Create()
     {
         return View();
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public IActionResult Create(CreateGameViewModel model)
     {
@@ -48,6 +49,7 @@ public class GameController : Controller
         return RedirectToAction("Index");
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public IActionResult Remove(int gameId)
     {

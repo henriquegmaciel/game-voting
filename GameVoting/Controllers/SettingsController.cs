@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GameVoting.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Admin")]
 public class SettingsController : Controller
 {
     private readonly ISiteSettingsRepository _settingsRepository;

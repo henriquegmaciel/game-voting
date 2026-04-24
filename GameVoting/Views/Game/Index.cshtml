@@ -39,17 +39,20 @@
                                     @session.ScheduledDate.ToString(format: "dd/MM/yyyy")
                                 </small>
                             </div>
-                            <form method="post" asp-controller="GameSession" asp-action="MarkAsPlayed">
-                                <input type="hidden" name="sessionId" value="@session.Id" />
-                                <button type="button" class="btn btn-sm btn-outline-success" title="Marcar como jogado"
-                                        onclick="openMarkAsPlayedModal(@session.Id, '@session.Game?.Title.Replace(oldValue: "'", newValue: "\\'") ')">
-                                    <i class="bi bi-check2-circle"></i>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <form method="post" asp-controller="GameSession" asp-action="MarkAsPlayed">
+                                    <input type="hidden" name="sessionId" value="@session.Id" />
+                                    <button type="button" class="btn btn-sm btn-outline-success" title="Marcar como jogado"
+                                            onclick="openMarkAsPlayedModal(@session.Id, '@session.Game?.Title.Replace(oldValue: "'", newValue: "\\'") ')">
+                                        <i class="bi bi-check2-circle"></i>
+                                    </button>
+                                </form>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" title="Editar sessão"
+                                        onclick="openEditSessionModal(@session.Id, '@(session.Game?.Title?.Replace(oldValue: "'", newValue: "\\'") ?? "")')">
+                                    <i class="bi bi-pencil"></i>
                                 </button>
-                            </form>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" title="Editar sessão"
-                                    onclick="openEditSessionModal(@session.Id, '@(session.Game?.Title?.Replace(oldValue: "'", newValue: "\\'") ?? "")')">
-                                <i class="bi bi-pencil"></i>
-                            </button>
+                            }
                         </div>
                     </div>
                 </div>
@@ -85,7 +88,10 @@
                 <input type="text" id="searchInput" class="form-control form-control-sm search-input"
                        placeholder="Buscar jogo..." autocomplete="off" />
             </div>
-            <a asp-controller="Game" asp-action="Create" class="btn btn-sm btn-primary" title="Adicionar jogo">+</a>
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-controller="Game" asp-action="Create" class="btn btn-sm btn-primary" title="Adicionar jogo">+</a>
+            }
         </div>
     </div>
 

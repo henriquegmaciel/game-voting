@@ -40,16 +40,19 @@
                 </button>
             </form>
         }
-        <button type="button" class="btn btn-sm btn-outline-secondary" title="Agendar"
-                onclick="openScheduleModal(@Model.GameId, '@Model.Title.Replace(oldValue: "'", newValue: "\\'")' )">
-            <i class="bi bi-calendar-plus"></i>
-        </button>
-        <form method="post" asp-controller="Game" asp-action="Remove" class="d-flex gap-1">
-            <input type="hidden" name="gameId" value="@Model.GameId" />
-            <button type="button" class="btn btn-sm btn-outline-danger" title="Remover jogo"
-                    onclick="openDeleteModal(@Model.GameId, '@Model.Title.Replace(oldValue: "'", newValue: "\\'")' )">
-                <i class="bi bi-trash"></i>
+        @if (User.IsInRole("Admin"))
+        {
+            <button type="button" class="btn btn-sm btn-outline-secondary" title="Agendar"
+                    onclick="openScheduleModal(@Model.GameId, '@Model.Title.Replace(oldValue: "'", newValue: "\\'")' )">
+                <i class="bi bi-calendar-plus"></i>
             </button>
-        </form>
+            <form method="post" asp-controller="Game" asp-action="Remove" class="d-flex gap-1">
+                <input type="hidden" name="gameId" value="@Model.GameId" />
+                <button type="button" class="btn btn-sm btn-outline-danger" title="Remover jogo"
+                        onclick="openDeleteModal(@Model.GameId, '@Model.Title.Replace(oldValue: "'", newValue: "\\'")' )">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+        }
     </div>
 </div>
