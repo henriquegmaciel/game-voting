@@ -43,6 +43,12 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>();
 
+builder.Services.AddAuthentication()
+    .AddSteam(options =>
+    {
+        options.ApplicationKey = builder.Configuration["Steam:ApiKey"];
+    });
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Auth/Login";

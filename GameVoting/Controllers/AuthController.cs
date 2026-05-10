@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using GameVoting.Models.Entities;
 using GameVoting.Models.ViewModels;
+using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -78,7 +80,80 @@ public class AuthController : Controller
     [HttpPost]
     public async Task<IActionResult> Logout()
     {
-        await _signInManager.SignOutAsync();        
+        await _signInManager.SignOutAsync();
         return RedirectToAction("Index", "Game");
+    }
+
+    [HttpGet]
+    public IActionResult SteamLogin(string? returnUrl = null)
+    {
+        var redirectUrl = Url.Action("SteamCallback", "Auth", new { returnUrl });
+        var properties = _signInManager.ConfigureExternalAuthenticationProperties("Steam", redirectUrl);
+        return Challenge(properties, "Steam");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> SteamCallback(string? returnUrl = null)
+    {
+        var info = await _signInManager.GetExternalLoginInfoAsync();
+        if (info is null)
+            return RedirectToAction("Login");
+
+        var steamId = info.ProviderKey.Split('/').Last();
+        var steamName = info.Principal.Identity?.Name ?? steamId;
+
+        var result = await _signInManager.ExternalLoginSignInAsync(
+            info.LoginProvider, info.ProviderKey, isPersistent: true);
+
+        if (result.Succeeded)
+        {
+            var existingUser = await _userManager.FindByNameAsync(steamId);
+            if (existingUser is not null && existingUser.DisplayName != steamName)
+            {
+                UpdateUserDisplayName(existingUser, steamName);
+                UpdateDisplayNameClaim(existingUser, steamName);
+            }
+            return LocalRedirect(returnUrl ?? "/");
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = steamId,
+            DisplayName = steamName,
+            RegisteredAt = DateTime.UtcNow
+        };
+
+        var createResult = await _userManager.CreateAsync(user);
+        if (createResult.Succeeded)
+        {
+            await _userManager.AddLoginAsync(user, info);
+            await _userManager.AddClaimAsync(user, new Claim("DisplayName", steamName));
+            await _signInManager.SignInAsync(user, isPersistent: true);
+
+            return LocalRedirect(returnUrl ?? "/");
+        }
+
+        return RedirectToAction("Login");
+    }
+
+    private async void UpdateUserDisplayName(ApplicationUser user, string newName)
+    {
+        user.DisplayName = newName;
+        await _userManager.UpdateAsync(user);
+    }
+
+    private async void UpdateDisplayNameClaim(ApplicationUser user, string newName)
+    {
+        var oldClaim = await GetDisplayNameClaim(user);
+        if (oldClaim is not null)
+            await _userManager.ReplaceClaimAsync(user, oldClaim, new Claim("DisplayName", newName));
+        else
+            await _userManager.AddClaimAsync(user, new Claim("DisplayName", newName));
+    }
+
+    private async Task<Claim?> GetDisplayNameClaim(ApplicationUser user)
+    {
+        return (await _userManager.GetClaimsAsync(user))
+                    .FirstOrDefault(c => c.Type == "DisplayName");
     }
 }
